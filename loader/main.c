@@ -501,21 +501,21 @@ int CheckForPurchase(int *this, char *item) {
 }
 
 void patch_game(void) {
-	string_constructor = so_symbol(&isotope_mod, "_ZN6stringC2EPKc");
+	string_constructor = (void *(*)(void *, const char *))so_symbol(&isotope_mod, "_ZN6stringC2EPKc");
 	hook_addr(so_symbol(&isotope_mod, "_Z6GetDPIv"), (uintptr_t)&GetDPI);
 	hook_addr(so_symbol(&isotope_mod, "_Z9GetLocaleR6string"), (uintptr_t)&GetLocale);
 	hook_addr(so_symbol(&isotope_mod, "_Z12GetVersionOSv"), (uintptr_t)&GetVersionOS);
 	hook_addr(so_symbol(&isotope_mod, "_Z19isInternetAvailablev"), (uintptr_t)&ret0);
 	hook_addr(so_symbol(&isotope_mod, "_Z7iapInitPc"), (uintptr_t)&ret0);
 	hook_addr(so_symbol(&isotope_mod, "_Z16ShellExecuteUtilPvPcjb"), (uintptr_t)&ret0);
-	SaveSettings = so_symbol(&isotope_mod, "_ZN12CAtomGameImp17SerializeSettingsEb");
-	serialize_hook = hook_addr(SaveSettings, (uintptr_t)&SerializeSettings);
+	SaveSettings = (void (*)(void *, int))so_symbol(&isotope_mod, "_ZN12CAtomGameImp17SerializeSettingsEb");
+	serialize_hook = hook_addr((uintptr_t)SaveSettings, (uintptr_t)&SerializeSettings);
 	pthread_create(&saver_thread, NULL, settings_saver, NULL);
 	
 	if (enable_dlcs)
 		hook_addr(so_symbol(&isotope_mod, "_ZN12CAtomGameImp16CheckForPurchaseEPc"), (uintptr_t)&CheckForPurchase);
 	
-	SendTouchEvent = so_symbol(&isotope_mod, "_ZN12CAtomGameImp5TouchEN13CApplication29TouchTypeE6_POINTi");
+	SendTouchEvent = (void (*)(void *, int, int, int, GLsizei))so_symbol(&isotope_mod, "_ZN12CAtomGameImp5TouchEN13CApplication29TouchTypeE6_POINTi");
 	g_pApp = (uint32_t *)so_symbol(&isotope_mod, "g_pApp");
 }
 
@@ -801,9 +801,9 @@ int SDL_PollEvent_fake(SDL_Event *event) {
 		sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);
 		for (int i = 0; i < 6; i++) {
 			if (touch.reportNum > i) {
-				SendTouchEvent(*g_pApp, old_touch.reportNum > i ? TOUCH_HOLD : TOUCH_DOWN, touch.report[i].x / 2, touch.report[i].y / 2, i);
+				SendTouchEvent((void *)(uintptr_t)*g_pApp, old_touch.reportNum > i ? TOUCH_HOLD : TOUCH_DOWN, touch.report[i].x / 2, touch.report[i].y / 2, i);
 			} else if (old_touch.reportNum > i) {
-				SendTouchEvent(*g_pApp, TOUCH_UP, old_touch.report[i].x / 2, old_touch.report[i].y / 2, i);
+				SendTouchEvent((void *)(uintptr_t)*g_pApp, TOUCH_UP, old_touch.report[i].x / 2, old_touch.report[i].y / 2, i);
 			}
 		}
 		sceClibMemcpy(&old_touch, &touch, sizeof(SceTouchData));

@@ -10,6 +10,13 @@ endif()
 
 project(isotope C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDL2_mixer REQUIRED IMPORTED_TARGET SDL2_mixer)
+pkg_check_modules(SDL2_image REQUIRED IMPORTED_TARGET SDL2_image)
+pkg_check_modules(sndfile REQUIRED IMPORTED_TARGET sndfile)
+pkg_check_modules(vorbisfile REQUIRED IMPORTED_TARGET vorbisfile)
+pkg_check_modules(openal REQUIRED IMPORTED_TARGET openal)
+pkg_check_modules(libcurl REQUIRED IMPORTED_TARGET libcurl)
 set(VITA_APP_NAME "Isotope 244 Collection")
 set(VITA_TITLEID  "ISOTPE244")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
@@ -25,9 +32,16 @@ add_executable(isotope
   loader/ctype_patch.c
 )
 
+set_target_properties(isotope PROPERTIES LINKER_LANGUAGE CXX)
+
 target_link_libraries(isotope
-  -Wl,--whole-archive pthread -Wl,--no-whole-archive
-  almixer
+  -pthread
+  PkgConfig::SDL2_mixer
+  PkgConfig::SDL2_image
+  PkgConfig::sndfile
+  PkgConfig::vorbisfile
+  PkgConfig::openal
+  ALmixer
   SDL2_mixer
   SDL2_image
   SDL2
@@ -38,13 +52,13 @@ target_link_libraries(isotope
   z
   m
   stdc++
-  opensles
+  OpenSLES
   sndfile
   vorbis
   vorbisenc
   vorbisfile
   ogg
-  curl
+  PkgConfig::libcurl
   ssl
   crypto
   FLAC
@@ -66,7 +80,6 @@ target_link_libraries(isotope
   SceDisplay_stub
   SceFios2_stub
   SceGxm_stub
-  SceLibcBridge_stub
   SceShaccCg_stub
   SceSysmodule_stub
   ScePower_stub
@@ -74,8 +87,10 @@ target_link_libraries(isotope
   SceMotion_stub
   SceHid_stub
   SceVshBridge_stub
-  SceKernelDmacmgr_stub
+  SceKernelDmacMgr_stub
   SceIme_stub
+  SceNet_stub
+  SceNetCtl_stub
 )
 
 add_executable(companion
@@ -83,8 +98,18 @@ add_executable(companion
   loader/dialog.c
 )
 
+set_target_properties(companion PROPERTIES LINKER_LANGUAGE CXX)
+
+# Reserve space for vita-elf-create import metadata between load segments.
+set_property(TARGET companion APPEND_STRING PROPERTY LINK_FLAGS " -Wl,--defsym=__sce_headroom=0x10000")
+
 target_link_libraries(companion
-  -Wl,--whole-archive pthread -Wl,--no-whole-archive
+  -pthread
+  PkgConfig::SDL2_mixer
+  PkgConfig::SDL2_image
+  PkgConfig::sndfile
+  PkgConfig::vorbisfile
+  PkgConfig::openal
   SDL2_mixer
   SDL2_image
   SDL2
@@ -95,7 +120,7 @@ target_link_libraries(companion
   z
   m
   stdc++
-  opensles
+  OpenSLES
   sndfile
   vorbis
   vorbisenc
@@ -120,7 +145,6 @@ target_link_libraries(companion
   SceDisplay_stub
   SceFios2_stub
   SceGxm_stub
-  SceLibcBridge_stub
   SceShaccCg_stub
   SceSysmodule_stub
   ScePower_stub
@@ -128,7 +152,7 @@ target_link_libraries(companion
   SceMotion_stub
   SceHid_stub
   SceVshBridge_stub
-  SceKernelDmacmgr_stub
+  SceKernelDmacMgr_stub
 )
 
 vita_create_self(eboot.bin companion UNSAFE)
@@ -146,3 +170,7 @@ vita_create_vpk(isotope.vpk ${VITA_TITLEID} eboot.bin
 		${CMAKE_SOURCE_DIR}/images/game2.png images/game2.png
 		${CMAKE_BINARY_DIR}/game.bin game.bin
 )
+
+set_property(SOURCE loader/so_util.c APPEND PROPERTY COMPILE_OPTIONS -Wno-error=return-mismatch -Wno-error=incompatible-pointer-types)
+
+set_property(SOURCE loader/main.c APPEND PROPERTY COMPILE_OPTIONS -std=gnu17)
